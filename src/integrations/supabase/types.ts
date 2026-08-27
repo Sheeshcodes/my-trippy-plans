@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      responses: {
+        Row: {
+          begin: number | null
+          device: string | null
+          doodle: string | null
+          end: number | null
+          key: string
+          lat: number | null
+          leave: string | null
+          lng: number | null
+          name: string | null
+          need: string | null
+          place: string | null
+          plus: string | null
+          rec: string | null
+          recText: string | null
+          spend: string | null
+          sure: string | null
+          ts: number | null
+          types: string | null
+          updated: string
+          vibe: string | null
+        }
+        Insert: {
+          begin?: number | null
+          device?: string | null
+          doodle?: string | null
+          end?: number | null
+          key: string
+          lat?: number | null
+          leave?: string | null
+          lng?: number | null
+          name?: string | null
+          need?: string | null
+          place?: string | null
+          plus?: string | null
+          rec?: string | null
+          recText?: string | null
+          spend?: string | null
+          sure?: string | null
+          ts?: number | null
+          types?: string | null
+          updated?: string
+          vibe?: string | null
+        }
+        Update: {
+          begin?: number | null
+          device?: string | null
+          doodle?: string | null
+          end?: number | null
+          key?: string
+          lat?: number | null
+          leave?: string | null
+          lng?: number | null
+          name?: string | null
+          need?: string | null
+          place?: string | null
+          plus?: string | null
+          rec?: string | null
+          recText?: string | null
+          spend?: string | null
+          sure?: string | null
+          ts?: number | null
+          types?: string | null
+          updated?: string
+          vibe?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
