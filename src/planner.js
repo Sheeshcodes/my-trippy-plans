@@ -526,12 +526,26 @@ function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]
 async function save(){
   const name=$('#name').value.trim();
   if(!name){toast('A name would help. Any name.');$('#name').focus();return;}
-  if(!me.sure){toast('How sure are you? Lurking counts.');$('#sure').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  if(me.begin!=null&&me.end==null){toast('You picked a start. Trips have ends too.');$('#cal').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  if(me.sure!=='lurking'&&(me.begin==null||me.end==null)){toast(me.sure==='in'?'You’re in. In when, though?':'Pick the dates you could do.');$('#chips').scrollIntoView({behavior:'smooth',block:'center'});return;}
   me.name=name;
-  const btn=$('#save');btn.disabled=true;btn.innerHTML=`<video class="saving-ill" autoplay muted loop playsinline src="${ILLUS.saving}"></video>Planting…`;
   const k=keyOf(name);const prev=friends[k];
+  if(prev&&k!==mineKey){toast('That name’s taken. Add a surname initial.');$('#name').focus();$('#name').scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const need=(el,msg,target)=>{if(el)return false;toast(msg);$(target).scrollIntoView({behavior:'smooth',block:'center'});return true;};
+  if(need(me.sure,'How sure are you? Lurking counts.','#sure'))return;
+  if(me.sure!=='lurking'){
+    if(need(me.lat!=null,'Drop a pin — where are you coming from?','#map'))return;
+    if(me.begin!=null&&me.end==null){toast('You picked a start. Trips have ends too.');$('#cal').scrollIntoView({behavior:'smooth',block:'center'});return;}
+    if(need(me.begin!=null&&me.end!=null,'Pick the dates you could do.','#chips'))return;
+    if(need(me.leave,'How much leave can you take?','#leave'))return;
+    if(need(me.vibe,'Salt or altitude? Pick one.','#vibes'))return;
+    if(need(me.types.length,'Pick the mood.','#types'))return;
+    if(need(me.spend,'Pick a comfortable spend.','#spend'))return;
+    if(need(me.plus,'Coming as?','#plus'))return;
+    if(need(me.rec,'Got a place in mind? Yes or no.','#rec'))return;
+    if(me.rec==='yes'&&need($('#recText').value.trim(),'Tell us the place you’d recommend.','#recText'))return;
+    if(need($('#need').value.trim(),'Finish the sentence — this trip needs…','#need'))return;
+  }
+  const btn=$('#save');btn.disabled=true;btn.innerHTML=`<video class="saving-ill" autoplay muted loop playsinline src="${ILLUS.saving}"></video>Planting…`;
+
   const rec={name,doodle:doodleFor(name),sure:me.sure,lat:me.lat,lng:me.lng,place:me.place,begin:me.begin,end:me.end,leave:me.leave,vibe:me.vibe,types:me.types.slice(),spend:me.spend,plus:me.plus,need:$('#need').value.trim(),rec:me.rec,recText:me.rec==='yes'?$('#recText').value.trim():'',ts:prev?prev.ts:Date.now(),device};
   const fresh=await saveRecord(rec);
   btn.disabled=false;btn.textContent=prev?'Update my answers':'Plant me in';
