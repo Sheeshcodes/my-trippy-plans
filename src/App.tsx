@@ -105,7 +105,7 @@ export default function App() {
   
   <section className="card" id="needs">
     <figure className="ill banner" data-slot="wish"></figure>
-    <div className="sec-head"><div><span className="num">6 / 6</span><h2>Finish the sentence.</h2><div className="hint">One line. It goes in the garden where everyone can see it. e.g. “a sunrise we’re awake for”, “Rahul’s speaker”.</div></div></div>
+    <div className="sec-head"><div><span className="num">6 / 6</span><h2>Finish the sentence.</h2><div className="hint">One line. It goes in the garden where everyone can see it. e.g. “a sunrise we’re awake for”, “Ashish’s speaker”.</div></div></div>
     <label className="lbl" htmlFor="need">This trip needs…</label>
     <input id="need" className="field" placeholder="the 2am rooftop talk" autoComplete="off" enterKeyHint="done" maxLength={60} />
     <div className="counter" id="needCount">60</div>
