@@ -490,9 +490,12 @@ function missing(){
   if(me.lat==null)m.push('pin');if(me.begin==null||me.end==null)m.push('dates');
   if(!me.leave)m.push('leave');if(!me.vibe)m.push('beach/hills');if(!me.types.length)m.push('mood');
   if(!me.spend)m.push('budget');if(!me.plus)m.push('plus-one');
+  if(!me.rec)m.push('a place in mind');else if(me.rec==='yes'&&!$('#recText').value.trim())m.push('your recommendation');
+  if(!$('#need').value.trim())m.push('this trip needs…');
   return m;
 }
-const totalQ=()=>me.sure==='lurking'?2:9;
+const totalQ=()=>me.sure==='lurking'?2:11;
+
 function checklist(){
   const T=totalQ();const m=missing();const done=T-m.length;const pct=Math.round(done/T*100);
   $('#progPct').textContent=pct+'%';
