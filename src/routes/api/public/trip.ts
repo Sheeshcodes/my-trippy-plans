@@ -68,6 +68,15 @@ async function handle(payload: Row) {
     for (const f of FIELDS) row[f] = rec[f] ?? null;
     row["types"] = Array.isArray(rec["types"]) ? (rec["types"] as unknown[]).join("|") : String(rec["types"] ?? "");
     const db = await admin();
+    const { data: existing } = await db
+      .from("responses")
+      .select("device")
+      .eq("key", key)
+      .maybeSingle();
+    const owner = String((existing as Row | null)?.["device"] ?? "");
+    if (existing && owner && owner !== String(rec["device"] ?? "")) {
+      return { ok: false, error: "this name is already taken by someone else" };
+    }
     const { error } = await db
       .from("responses")
       .upsert(row as never, { onConflict: "key" });
