@@ -56,8 +56,8 @@ let lastPlanted=null,pendingPlace=null;
 
 const hash=s=>{let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0);};
 const keyOf=n=>n.trim().toLowerCase();
-const doodleFor=n=>DOODLES[hash(keyOf(n)||'x')%DOODLES.length];
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DOODLE_OVERRIDES={pratik:'rose'}; // name (lowercased) -> doodle
+const doodleFor=n=>DOODLE_OVERRIDES[keyOf(n)]||DOODLES[hash(keyOf(n)||'x')%DOODLES.length];const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const all=()=>Object.values(friends);
 const active=()=>all().filter(f=>f.sure!=='lurking');          // lurkers are counted, not planned around
 const voters=()=>active().filter(f=>f.begin!=null&&f.end!=null);
@@ -68,8 +68,7 @@ function sanitize(src){                                          // never trust 
   Object.entries(src||{}).forEach(([k,f])=>{
     if(!f||typeof f!=='object'||!f.name)return;
     const name=String(f.name).slice(0,24).trim();if(!name)return;
-    const r={name,doodle:DOODLES.includes(f.doodle)?f.doodle:doodleFor(name),sure:okOpt('sure',f.sure),
-      lat:inR(f.lat,-85,85)?f.lat:null,lng:inR(f.lng,-180,180)?f.lng:null,place:String(f.place||'').slice(0,60),
+    const r={name,doodle:DOODLE_OVERRIDES[keyOf(name)]||(DOODLES.includes(f.doodle)?f.doodle:doodleFor(name)),sure:okOpt('sure',f.sure),      lat:inR(f.lat,-85,85)?f.lat:null,lng:inR(f.lng,-180,180)?f.lng:null,place:String(f.place||'').slice(0,60),
       begin:inR(f.begin,0,60)?Math.round(f.begin):null,end:inR(f.end,0,60)?Math.round(f.end):null,
       leave:okOpt('leave',f.leave),vibe:okOpt('vibes',f.vibe),types:(Array.isArray(f.types)?f.types:[]).filter(t=>okOpt('types',t)).slice(0,2),
       spend:okOpt('spend',f.spend),plus:okOpt('plus',f.plus),need:String(f.need||'').slice(0,60),rec:(f.rec==='yes'||f.rec==='no')?f.rec:null,recText:String(f.recText||'').slice(0,80),ts:isFinite(f.ts)?+f.ts:Date.now(),device:String(f.device||'')};
@@ -442,8 +441,8 @@ function renderCount(){
   const i=all().filter(f=>f.sure==='in').length,p=all().filter(f=>f.sure==='probably').length;
   const lead=leading();
   const heads=all().sort((a,b)=>b.ts-a.ts).slice(0,3).map(f=>`<svg class="d-svg"><use href="#d-${f.doodle}"/></svg>`).join('');
-  $('#count').innerHTML=`<div class="strip-txt"><b>${i} filled already</b>${p?`, ${p} probably`:''}${n-i-p?`, ${n-i-p} lurking`:''}${lead?` — leaning towards the week of <b>${esc(lead)}</b>`:''}</div><div class="strip-heads">${heads}</div>`;
-  $('#count').style.display='';
+  const lurk=n-i-p;
+  $('#count').innerHTML=`<div class="strip-txt"><b>${n} filled already</b> — ${i} in, ${p} probably, ${lurk} lurking${lead?` · leaning towards the week of <b>${esc(lead)}</b>`:''}</div><div class="strip-heads">${heads}</div>`;  $('#count').style.display='';
 }
 function renderRes(){
   const list=all();const R=$('#res');
