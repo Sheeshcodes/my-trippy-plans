@@ -64,7 +64,8 @@ h2{font-size:22px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:
 /* ---- inputs ---- */
 .lbl{display:block;font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px 2px}
 .field{-webkit-appearance:none;appearance:none;width:100%;min-width:0;background:var(--canvas);border:1.5px solid transparent;border-radius:14px;padding:13px 14px;font-size:17px;font-weight:500;outline:none;letter-spacing:0;-webkit-appearance:none}
-.field::placeholder{color:var(--ink2);font-weight:500}
+.field::placeholder{color:var(--ink2);font-weight:500;font-size:13px}
+.field::-webkit-input-placeholder{font-size:13px}
 .field:focus{border-color:var(--ink);background:var(--card)}
 .who{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:12px;align-items:center}
 .me-doodle{width:40px;height:50px}
