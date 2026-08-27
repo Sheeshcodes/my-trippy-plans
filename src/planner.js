@@ -215,7 +215,7 @@ function nameCheck(){
   if(!k||!friends[k]||k===mineKey){el.innerHTML='';return;}
   const f=friends[k];
   const theirs=f.device&&device&&f.device!==device;
-  el.innerHTML=`There’s already a <b>${esc(f.name)}</b> here${f.place?' ('+esc(f.place)+')':''}. ${theirs?'If that isn’t you, add a surname initial — otherwise you’ll overwrite them, and they’ll know.':'That you? Saving updates your answers.'}`;
+  el.innerHTML=`There’s already a <b>${esc(f.name)}</b> here${f.place?' ('+esc(f.place)+')':''}. ${theirs?'Names can’t repeat — add a surname initial.':'That you? Use “Not you? Start a fresh form” below, or add a surname initial.'}`;
 }
 function renderDoodles(){
   const n=me.name.trim();
@@ -490,9 +490,12 @@ function missing(){
   if(me.lat==null)m.push('pin');if(me.begin==null||me.end==null)m.push('dates');
   if(!me.leave)m.push('leave');if(!me.vibe)m.push('beach/hills');if(!me.types.length)m.push('mood');
   if(!me.spend)m.push('budget');if(!me.plus)m.push('plus-one');
+  if(!me.rec)m.push('a place in mind');else if(me.rec==='yes'&&!$('#recText').value.trim())m.push('your recommendation');
+  if(!$('#need').value.trim())m.push('this trip needs…');
   return m;
 }
-const totalQ=()=>me.sure==='lurking'?2:9;
+const totalQ=()=>me.sure==='lurking'?2:11;
+
 function checklist(){
   const T=totalQ();const m=missing();const done=T-m.length;const pct=Math.round(done/T*100);
   $('#progPct').textContent=pct+'%';
@@ -523,12 +526,26 @@ function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]
 async function save(){
   const name=$('#name').value.trim();
   if(!name){toast('A name would help. Any name.');$('#name').focus();return;}
-  if(!me.sure){toast('How sure are you? Lurking counts.');$('#sure').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  if(me.begin!=null&&me.end==null){toast('You picked a start. Trips have ends too.');$('#cal').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  if(me.sure!=='lurking'&&(me.begin==null||me.end==null)){toast(me.sure==='in'?'You’re in. In when, though?':'Pick the dates you could do.');$('#chips').scrollIntoView({behavior:'smooth',block:'center'});return;}
   me.name=name;
-  const btn=$('#save');btn.disabled=true;btn.innerHTML=`<video class="saving-ill" autoplay muted loop playsinline src="${ILLUS.saving}"></video>Planting…`;
   const k=keyOf(name);const prev=friends[k];
+  if(prev&&k!==mineKey){toast('That name’s taken. Add a surname initial.');$('#name').focus();$('#name').scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const need=(el,msg,target)=>{if(el)return false;toast(msg);$(target).scrollIntoView({behavior:'smooth',block:'center'});return true;};
+  if(need(me.sure,'How sure are you? Lurking counts.','#sure'))return;
+  if(me.sure!=='lurking'){
+    if(need(me.lat!=null,'Drop a pin — where are you coming from?','#map'))return;
+    if(me.begin!=null&&me.end==null){toast('You picked a start. Trips have ends too.');$('#cal').scrollIntoView({behavior:'smooth',block:'center'});return;}
+    if(need(me.begin!=null&&me.end!=null,'Pick the dates you could do.','#chips'))return;
+    if(need(me.leave,'How much leave can you take?','#leave'))return;
+    if(need(me.vibe,'Salt or altitude? Pick one.','#vibes'))return;
+    if(need(me.types.length,'Pick the mood.','#types'))return;
+    if(need(me.spend,'Pick a comfortable spend.','#spend'))return;
+    if(need(me.plus,'Coming as?','#plus'))return;
+    if(need(me.rec,'Got a place in mind? Yes or no.','#rec'))return;
+    if(me.rec==='yes'&&need($('#recText').value.trim(),'Tell us the place you’d recommend.','#recText'))return;
+    if(need($('#need').value.trim(),'Finish the sentence — this trip needs…','#need'))return;
+  }
+  const btn=$('#save');btn.disabled=true;btn.innerHTML=`<video class="saving-ill" autoplay muted loop playsinline src="${ILLUS.saving}"></video>Planting…`;
+
   const rec={name,doodle:doodleFor(name),sure:me.sure,lat:me.lat,lng:me.lng,place:me.place,begin:me.begin,end:me.end,leave:me.leave,vibe:me.vibe,types:me.types.slice(),spend:me.spend,plus:me.plus,need:$('#need').value.trim(),rec:me.rec,recText:me.rec==='yes'?$('#recText').value.trim():'',ts:prev?prev.ts:Date.now(),device};
   const fresh=await saveRecord(rec);
   btn.disabled=false;btn.textContent=prev?'Update my answers':'Plant me in';
@@ -603,7 +620,7 @@ async function boot(){
   if(!hasBackend&&!hasStore){$('#storeWarn').innerHTML='<div class="warn">No backend connected — answers stay on this phone. Add the Apps Script URL (backend.gs) or open the shared link.</div>';}
   $('#name').addEventListener('input',()=>{me.name=$('#name').value;renderDoodles();nameCheck();if(me.lat!=null)renderMap();steps();checklist();});
   $('#need').addEventListener('input',()=>{$('#needCount').textContent=60-$('#need').value.length;});
-  $('#recText').addEventListener('input',()=>{$('#recCount').textContent=80-$('#recText').value.length;me.recText=$('#recText').value;});
+  $('#recText').addEventListener('input',()=>{$('#recCount').textContent=80-$('#recText').value.length;me.recText=$('#recText').value;checklist();});
   $('#go').onclick=search;
   $('#q').addEventListener('input',()=>{const q=$('#q').value.trim();if(q.length<2){$('#results').innerHTML='';return;}renderResults(localSearch(q),'');});
   $('#q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search();}});
