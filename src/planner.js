@@ -215,7 +215,7 @@ function nameCheck(){
   if(!k||!friends[k]||k===mineKey){el.innerHTML='';return;}
   const f=friends[k];
   const theirs=f.device&&device&&f.device!==device;
-  el.innerHTML=`There’s already a <b>${esc(f.name)}</b> here${f.place?' ('+esc(f.place)+')':''}. ${theirs?'If that isn’t you, add a surname initial — otherwise you’ll overwrite them, and they’ll know.':'That you? Saving updates your answers.'}`;
+  el.innerHTML=`There’s already a <b>${esc(f.name)}</b> here${f.place?' ('+esc(f.place)+')':''}. ${theirs?'Names can’t repeat — add a surname initial.':'That you? Use “Not you? Start a fresh form” below, or add a surname initial.'}`;
 }
 function renderDoodles(){
   const n=me.name.trim();
