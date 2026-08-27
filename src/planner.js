@@ -619,6 +619,7 @@ async function boot(){
   $('#need').addEventListener('input',checklist);
   $('#copy').onclick=()=>copyText(summary(),'Copied. Paste it in the group.');
   $('#nudge').onclick=()=>copyText(nudge(),'Copied. Send it to the quiet ones.');
+  $('#waUpdate').onclick=()=>copyText(`I am done filling as ${me.name.trim()}! now you're next ;)`,'Copied. Paste it in WhatsApp.');
   friends=await loadFriends();
   const saved=await loadMe();
   if(saved&&saved.name&&friends[keyOf(saved.name)]){

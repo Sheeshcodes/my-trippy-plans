@@ -127,6 +127,7 @@ export default function App() {
     <div className="actions">
       <button className="btn" id="copy">Copy summary for WhatsApp</button>
       <button className="btn" id="nudge">Copy a nudge for the quiet ones</button>
+      <button className="btn secondary" id="waUpdate">Send update to whatsapp</button>
     </div>
   </section>
 

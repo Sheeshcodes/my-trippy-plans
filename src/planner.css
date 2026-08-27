@@ -113,6 +113,7 @@ h2{font-size:22px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;font-size:15px;font-weight:700;border:1.5px solid var(--ink);border-radius:999px;transition:transform .12s;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn.ink{background:var(--ink);color:var(--card)}
+.btn.secondary{background:var(--canvas);border-color:var(--line);color:var(--ink2)}
 .btn.wide{width:100%;padding:18px;font-size:18px;border-radius:var(--r)}
 .btn[disabled]{opacity:.45}
 .link{font-size:13.5px;color:var(--ink2);font-weight:600;text-decoration:underline;text-underline-offset:4px}
