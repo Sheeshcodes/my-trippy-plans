@@ -653,6 +653,8 @@ async function boot(){
     if(f.lat!=null)setPin(f.lat,f.lng,f.place,true);
     $('#save').textContent='Update my answers';
     renderCal();if(me.sure==='in')$('#who').classList.add('glow');
+    saveMeLocal();
+
   }
   renderAll();checklist();
   if(REPORT)mountIll(document.querySelector('.hero'),true);
