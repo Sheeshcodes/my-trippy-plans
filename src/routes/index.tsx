@@ -1,24 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
+import App from "../App";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Batch Trip Planner · Sept–Oct 2026" },
+      {
+        name: "description",
+        content:
+          "Sixty seconds to say when you're free, where you're starting from and what you want. Then someone finally books something.",
+      },
+      { property: "og:title", content: "Batch trip. Finally." },
+      {
+        property: "og:description",
+        content: "Sixty seconds, then someone books something.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap",
+      },
+    ],
+  }),
+  ssr: false,
+  component: App,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
