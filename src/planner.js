@@ -620,7 +620,7 @@ async function boot(){
   if(!hasBackend&&!hasStore){$('#storeWarn').innerHTML='<div class="warn">No backend connected — answers stay on this phone. Add the Apps Script URL (backend.gs) or open the shared link.</div>';}
   $('#name').addEventListener('input',()=>{me.name=$('#name').value;renderDoodles();nameCheck();if(me.lat!=null)renderMap();steps();checklist();});
   $('#need').addEventListener('input',()=>{$('#needCount').textContent=60-$('#need').value.length;});
-  $('#recText').addEventListener('input',()=>{$('#recCount').textContent=80-$('#recText').value.length;me.recText=$('#recText').value;});
+  $('#recText').addEventListener('input',()=>{$('#recCount').textContent=80-$('#recText').value.length;me.recText=$('#recText').value;checklist();});
   $('#go').onclick=search;
   $('#q').addEventListener('input',()=>{const q=$('#q').value.trim();if(q.length<2){$('#results').innerHTML='';return;}renderResults(localSearch(q),'');});
   $('#q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search();}});
