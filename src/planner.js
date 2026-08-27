@@ -639,8 +639,14 @@ async function boot(){
   $('#waUpdate').onclick=()=>copyText(`I am done filling as ${me.name.trim()}! now you're next ;)`,'Copied. Paste it in WhatsApp.');
   friends=await loadFriends();
   const saved=await loadMe();
-  if(saved&&saved.name&&friends[keyOf(saved.name)]){
-    const f=friends[keyOf(saved.name)];mineKey=keyOf(saved.name);
+  let myKey=(saved&&saved.name&&friends[keyOf(saved.name)])?keyOf(saved.name):null;
+  if(!myKey&&device){ // same browser, but the local note got lost: match on this browser's id
+    const hit=Object.keys(friends).find(k=>friends[k]&&friends[k].device===device);
+    if(hit)myKey=hit;
+  }
+  if(myKey){
+    const f=friends[myKey];mineKey=myKey;
+
     me.name=f.name;me.sure=f.sure||null;me.begin=f.begin;me.end=f.end;me.leave=f.leave||null;me.vibe=f.vibe||null;me.types=Array.isArray(f.types)?f.types.slice():[];me.spend=f.spend||null;me.plus=f.plus||null;me.rec=f.rec||null;me.recText=f.recText||'';
     $('#name').value=f.name;$('#need').value=f.need||'';$('#needCount').textContent=60-$('#need').value.length;$('#recText').value=f.recText||'';$('#recCount').textContent=80-(f.recText||'').length;$('#recBox').style.display=f.rec==='yes'?'':'none';renderRec();
     renderDoodles();
