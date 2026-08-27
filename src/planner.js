@@ -490,10 +490,10 @@ function missing(){
   if(!me.leave)m.push('leave');if(!me.vibe)m.push('beach/hills');if(!me.types.length)m.push('mood');
   if(!me.spend)m.push('budget');if(!me.plus)m.push('plus-one');
   if(!me.rec)m.push('a place in mind');else if(me.rec==='yes'&&!$('#recText').value.trim())m.push('your recommendation');
-  if(!$('#need').value.trim())m.push('this trip needs…');
   return m;
 }
-const totalQ=()=>me.sure==='lurking'?2:11;
+const REQUIRED_FULL=['name','how sure','pin','dates','leave','beach/hills','mood','budget','plus-one','a place in mind'];
+const totalQ=()=>me.sure==='lurking'?2:REQUIRED_FULL.length;
 
 function checklist(){
   const T=totalQ();const m=missing();const done=T-m.length;const pct=Math.round(done/T*100);
@@ -541,7 +541,6 @@ async function save(){
     if(need(me.plus,'Coming as?','#plus'))return;
     if(need(me.rec,'Got a place in mind? Yes or no.','#rec'))return;
     if(me.rec==='yes'&&need($('#recText').value.trim(),'Tell us the place you’d recommend.','#recText'))return;
-    if(need($('#need').value.trim(),'Finish the sentence — this trip needs…','#need'))return;
   }
   const btn=$('#save');btn.disabled=true;btn.innerHTML=`<video class="saving-ill" autoplay muted loop playsinline src="${ILLUS.saving}"></video>Planting…`;
 
