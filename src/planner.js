@@ -442,7 +442,7 @@ function renderCount(){
   const i=all().filter(f=>f.sure==='in').length,p=all().filter(f=>f.sure==='probably').length;
   const lead=leading();
   const heads=all().sort((a,b)=>b.ts-a.ts).slice(0,3).map(f=>`<svg class="d-svg"><use href="#d-${f.doodle}"/></svg>`).join('');
-  $('#count').innerHTML=`<div class="strip-txt"><b>${i} in</b>${p?`, ${p} probably`:''}${n-i-p?`, ${n-i-p} lurking`:''}${lead?` — leaning <b>${esc(lead)}</b>`:''}</div><div class="strip-heads">${heads}</div>`;
+  $('#count').innerHTML=`<div class="strip-txt"><b>${i} filled already</b>${p?`, ${p} probably`:''}${n-i-p?`, ${n-i-p} lurking`:''}${lead?` — leaning towards the week of <b>${esc(lead)}</b>`:''}</div><div class="strip-heads">${heads}</div>`;
   $('#count').style.display='';
 }
 function renderRes(){
