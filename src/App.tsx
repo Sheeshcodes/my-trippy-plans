@@ -133,7 +133,7 @@ export default function App() {
   
   <section className="card" id="gardenSec">
     <div className="sec-head"><div><h2>The garden</h2><div className="hint" id="gardenHint">Nobody’s planted yet. Be the first. Be the legend.</div></div></div>
-    <div id="gardenEmpty"><figure className="ill" data-slot="empty"></figure><div className="hint">An empty pot. It’s giving “group chat with 40 people and zero plans”.</div></div>
+    <div id="gardenEmpty"><figure className="ill" data-slot="empty"></figure><div className="hint">An empty pot. It’s giving “group chat with 22 people and zero plans”.</div></div>
     <svg className="garden" id="garden" viewBox="0 0 360 120"></svg>
     <div className="res" id="res"></div>
     <div className="actions">
