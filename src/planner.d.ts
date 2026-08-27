@@ -1,3 +1,1 @@
-declare module "./planner" {
-  export function mountPlanner(): void;
-}
+export declare function mountPlanner(): void;
