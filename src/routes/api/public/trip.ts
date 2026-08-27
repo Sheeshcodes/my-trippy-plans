@@ -68,7 +68,9 @@ async function handle(payload: Row) {
     for (const f of FIELDS) row[f] = rec[f] ?? null;
     row["types"] = Array.isArray(rec["types"]) ? (rec["types"] as unknown[]).join("|") : String(rec["types"] ?? "");
     const db = await admin();
-    const { error } = await db.from("responses").upsert(row, { onConflict: "key" });
+    const { error } = await db
+      .from("responses")
+      .upsert(row as never, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true, friends: await friendsMap() };
   }
