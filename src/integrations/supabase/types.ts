@@ -14,12 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      groups: {
+        Row: {
+          admin_key: string
+          allow_lurking: boolean
+          allow_plus_one: boolean
+          budget_rule: string
+          budget_tiers: Json | null
+          created_at: string
+          currency: string
+          holiday_ids: string[]
+          id: string
+          name: string
+          organiser_name: string | null
+          recs: Json | null
+          recs_run_at: string | null
+          recs_updated_at: string | null
+          region: string
+          states: string[]
+          trip_len_max: number | null
+          trip_len_min: number | null
+          vote_by: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          admin_key: string
+          allow_lurking?: boolean
+          allow_plus_one?: boolean
+          budget_rule?: string
+          budget_tiers?: Json | null
+          created_at?: string
+          currency?: string
+          holiday_ids?: string[]
+          id: string
+          name?: string
+          organiser_name?: string | null
+          recs?: Json | null
+          recs_run_at?: string | null
+          recs_updated_at?: string | null
+          region?: string
+          states?: string[]
+          trip_len_max?: number | null
+          trip_len_min?: number | null
+          vote_by?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          admin_key?: string
+          allow_lurking?: boolean
+          allow_plus_one?: boolean
+          budget_rule?: string
+          budget_tiers?: Json | null
+          created_at?: string
+          currency?: string
+          holiday_ids?: string[]
+          id?: string
+          name?: string
+          organiser_name?: string | null
+          recs?: Json | null
+          recs_run_at?: string | null
+          recs_updated_at?: string | null
+          region?: string
+          states?: string[]
+          trip_len_max?: number | null
+          trip_len_min?: number | null
+          vote_by?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       responses: {
         Row: {
           begin: number | null
           device: string | null
           doodle: string | null
           end: number | null
+          group_id: string
+          id: number
           key: string
           lat: number | null
           leave: string | null
@@ -42,6 +116,8 @@ export type Database = {
           device?: string | null
           doodle?: string | null
           end?: number | null
+          group_id?: string
+          id?: number
           key: string
           lat?: number | null
           leave?: string | null
@@ -64,6 +140,8 @@ export type Database = {
           device?: string | null
           doodle?: string | null
           end?: number | null
+          group_id?: string
+          id?: number
           key?: string
           lat?: number | null
           leave?: string | null
@@ -81,7 +159,15 @@ export type Database = {
           updated?: string
           vibe?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "responses_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

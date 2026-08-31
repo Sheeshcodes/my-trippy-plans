@@ -23,7 +23,76 @@ export default function App() {
   </defs>
 </svg>
 
-<div className="app">
+<div className="app setup" id="setupApp" style={{display:'none'}}>
+
+  <header className="card hero">
+    <div className="eyebrow" id="setupStepLabel">Step 1 of 5</div>
+    <h1>Start the trip</h1>
+    <div className="lead">Five short screens. Under two minutes, then you send a link and go back to your evening.</div>
+    <div className="steps" aria-hidden="true"><i id="t1"></i><i id="t2"></i><i id="t3"></i><i id="t4"></i><i id="t5"></i></div>
+  </header>
+
+  <section className="card setup-step" id="st1">
+    <h2>Name it</h2>
+    <div className="hint">This becomes the title everyone sees on the form.</div>
+    <label className="fld"><span>Trip name</span><input className="field" id="gName" type="text" maxLength={60} placeholder="Batch of &rsquo;22 &middot; winter meet" /></label>
+    <label className="fld"><span>Your name</span><input className="field" id="gOrg" type="text" maxLength={40} placeholder="Antwin" /></label>
+  </section>
+
+  <section className="card setup-step" id="st2" style={{display:'none'}}>
+    <h2>When could it be?</h2>
+    <div className="hint">A window, not a date. Everyone picks inside it.</div>
+    <div className="facts">
+      <label className="fld"><span>From</span><input className="field" id="gFrom" type="date" /></label>
+      <label className="fld"><span>Until</span><input className="field" id="gTo" type="date" /></label>
+    </div>
+    <div className="lbl">How long a trip?</div>
+    <div className="opts" id="gLen"></div>
+    <label className="fld"><span>Answers by</span><input className="field" id="gVoteBy" type="date" /></label>
+  </section>
+
+  <section className="card setup-step" id="st3" style={{display:'none'}}>
+    <h2>Holidays that count</h2>
+    <div className="hint">Tick the states your group actually lives in, then untick any holiday you know nobody gets. What&rsquo;s left becomes the long-weekend options on the form.</div>
+    <div className="lbl">States in the group</div>
+    <div className="chips" id="gStates"></div>
+    <div className="lbl">Holidays in your window</div>
+    <div id="gHols" className="hol-list"></div>
+    <div className="hint" id="gHolsNote"></div>
+  </section>
+
+  <section className="card setup-step" id="st4" style={{display:'none'}}>
+    <h2>Money &amp; people</h2>
+    <div className="hint">Per head, for stay + food + local travel. Not the journey there.</div>
+    <div id="gTiers" className="tier-list"></div>
+    <div className="lbl">How should the group&rsquo;s number be decided?</div>
+    <div className="opts" id="gRule"></div>
+    <div className="lbl">Anything to switch off?</div>
+    <div className="opts" id="gToggles"></div>
+  </section>
+
+  <section className="card setup-step" id="st5" style={{display:'none'}}>
+    <h2>Send it round</h2>
+    <div className="hint" id="gDoneHint">Your trip is live. This link is the key &mdash; anyone who has it can join, so keep it to the group and don&rsquo;t post it publicly.</div>
+    <div className="linkbox" id="gLinkBox"><code id="gLink"></code></div>
+    <div className="actions">
+      <button className="btn ink" id="gShare">Share the link</button>
+      <button className="btn" id="gCopyLink">Copy link</button>
+      <button className="btn" id="gCopyMsg">Copy the WhatsApp message</button>
+    </div>
+    <div className="warn" id="gAdminNote"></div>
+    <button className="link" id="gOpenTrip">Open the trip &rarr;</button>
+  </section>
+
+  <div className="setup-nav" id="setupNav">
+    <button className="btn" id="setupBack">Back</button>
+    <button className="btn ink" id="setupNext">Next</button>
+  </div>
+  <div id="setupWarn"></div>
+
+</div>
+
+<div className="app" id="memberApp">
 
   
   <header className="card hero">

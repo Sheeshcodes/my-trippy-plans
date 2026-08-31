@@ -2,8 +2,16 @@
 
 
 const $=s=>document.querySelector(s);
+import HOLIDAYS from './data/holidays-in.json';
 import { BACKEND_URL, SHARE_URL, VOTE_BY } from './config';
 const KEY='trip:friends', MEKEY='trip:me';
+const QS=new URLSearchParams(location.search);
+const GID=(()=>{const g=(QS.get('g')||'').trim();return /^[a-z0-9_-]{6,40}$/i.test(g)?g:'legacy';})();
+const SETUP=QS.has('new');
+const AKEY='trip:admin:'+GID;                       // the organiser's key, this device only
+const adminKey=()=>{try{return localStorage.getItem(AKEY)||'';}catch(e){return '';}};
+const withG=u=>u+(u.includes('?')?'&':'?')+'g='+encodeURIComponent(GID);
+let group=null;                                     // the group's settings, once loaded
 const DOODLES=['flower','mushroom','bee','rose','grass','tree','tulip'];
 
 /* ---------- questions ---------- */
@@ -86,11 +94,16 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 function steps(){$('#s1').classList.toggle('on',!!me.name.trim()&&!!me.sure);$('#s2').classList.toggle('on',me.lat!=null);$('#s3').classList.toggle('on',me.begin!=null&&me.end!=null);$('#s4').classList.toggle('on',!!friends[keyOf(me.name)]);}
 
 /* ---------- storage: backend > artifact storage > memory ---------- */
-async function apiGet(){const r=await fetch(BACKEND_URL+'?action=list&t='+Date.now(),{cache:'no-store'});const j=await r.json();return j.friends||{};}
+async function apiGet(){
+  const r=await fetch(withG(BACKEND_URL+'?action=list&t='+Date.now()),{cache:'no-store'});
+  const j=await r.json();
+  if(j&&j.group)group=j.group;
+  return j.friends||{};
+}
 async function apiPost(body){
   const txt=JSON.stringify(body);
-  try{const r=await fetch(BACKEND_URL,{method:'POST',body:txt,headers:{'Content-Type':'text/plain;charset=utf-8'}});const j=await r.json();return j.ok!==false;}
-  catch(e){ try{await fetch(BACKEND_URL,{method:'POST',mode:'no-cors',body:txt,headers:{'Content-Type':'text/plain;charset=utf-8'}});return true;}catch(e2){return false;} }
+  try{const r=await fetch(withG(BACKEND_URL),{method:'POST',body:txt,headers:{'Content-Type':'text/plain;charset=utf-8'}});const j=await r.json();return j.ok!==false;}
+  catch(e){ try{await fetch(withG(BACKEND_URL),{method:'POST',mode:'no-cors',body:txt,headers:{'Content-Type':'text/plain;charset=utf-8'}});return true;}catch(e2){return false;} }
 }
 async function loadFriends(){
   if(hasBackend){try{return sanitize(await apiGet());}catch(e){return friends;}}
@@ -640,7 +653,7 @@ function nudge(){
   const names=list.slice(0,3).map(f=>f.name);
   return `${list.length} of us have planted (${names.join(', ')}${list.length>3?' + more':''})${lead?`, and it’s leaning ${lead}`:''}. Takes a minute — less than you spend choosing what to order. ${SHARE_URL||(/^https?:/.test(location.href)?location.href.split('#')[0]:'(link)')}`;
 }
-const tripLink=()=>SHARE_URL||(/^https?:/.test(location.href)?location.href.split('#')[0]:'');
+const tripLink=()=>{const b=SHARE_URL||(/^https?:/.test(location.href)?location.href.split('#')[0].split('?')[0]:'');return b?(GID==='legacy'?b:withG(b)):'';};
 const canShare=()=>{try{return typeof navigator.share==='function';}catch(e){return false;}};
 async function shareTrip(){
   const link=tripLink();
@@ -670,6 +683,274 @@ function openLLM(which){
 }
 async function copyText(t,msg){try{await navigator.clipboard.writeText(t);toast(msg);}catch(e){prompt('copy this:',t);}}
 
+
+/* ================= organiser setup (spec §4) =================
+   Five screens, one job each. Nothing here touches the member form's state. */
+const TIER_DEFAULTS=[
+  {id:'5k',label:'₹5k',sub:'hostels & character'},
+  {id:'10k',label:'₹10k',sub:'a bed and a door'},
+  {id:'15k',label:'₹15k',sub:'a view'},
+  {id:'25k',label:'₹25k+',sub:'we don’t ask, we book'},
+];
+const LEN_OPTS=[
+  ['2','Weekend','two days, no leave',2,2],
+  ['3-4','Long weekend','the sweet spot',3,4],
+  ['5-7','Up to a week','if HR is kind',5,7],
+];
+const RULE_OPTS=[
+  ['inclusive70','Kind','the highest tier 70% are okay with — excludes nobody'],
+  ['common','Most common','whatever most people picked'],
+  ['median','Middle','the median tier'],
+];
+const STATE_SUGGEST=['KA','MH','DL','TN','TS','WB','KL','UP','GJ','RJ','PB','HR','AP','OD','MP','BR','AS','GA','JK','CG','UK','JH'];
+const iso=d=>d.toISOString().slice(0,10);
+const addMonths=(d,n)=>{const x=new Date(d);x.setMonth(x.getMonth()+n);return x;};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const prettyDate=s=>{const d=new Date(s+'T00:00:00');return DOW[d.getDay()]+' '+d.getDate()+' '+MONTH[d.getMonth()];};
+const isWeekend=d=>d.getDay()===0||d.getDay()===6;
+
+let G={name:'',organiser_name:'',window_start:'',window_end:'',trip_len_min:3,trip_len_max:4,
+       vote_by:'',states:[],holiday_ids:[],budget_tiers:TIER_DEFAULTS.map(t=>({...t})),
+       budget_rule:'inclusive70',allow_plus_one:true,allow_lurking:true,region:'IN',currency:'INR'};
+let step=1, created=null;
+
+/* Holidays inside the window that any ticked state actually gets. */
+function holsInWindow(){
+  const a=G.window_start,b=G.window_end;
+  if(!a||!b)return [];
+  return HOLIDAYS.holidays.filter(h=>{
+    if(h.date<a||h.date>b)return false;
+    if(Array.isArray(h.notIn)&&G.states.length&&G.states.every(st=>h.notIn.includes(st)))return false;
+    if(h.scope==='national')return true;
+    return !G.states.length||h.scope.some(st=>G.states.includes(st));
+  }).sort((x,y)=>x.date.localeCompare(y.date));
+}
+/* The whole point of the product: for a given holiday, what is the cheapest
+   break we can build around it? Slide a window of the group's trip length over
+   the holiday and find the placement needing the fewest leave days. Weekends
+   and every OTHER holiday the organiser kept both count as already-free. */
+const DAY=864e5;
+const dnum=s=>Date.parse(s+'T00:00:00Z');
+const dstr=n=>new Date(n).toISOString().slice(0,10);
+function freeDaySet(){
+  const set=new Set();
+  for(const h of HOLIDAYS.holidays){
+    if(!G.holiday_ids.includes(h.id))continue;
+    for(let t=dnum(h.date),e=dnum(h.until||h.date);t<=e;t+=DAY)set.add(dstr(t));
+  }
+  return set;
+}
+function bestBreak(h,free){
+  const L=Math.max(1,G.trip_len_max||4);
+  const start=dnum(h.date), end=dnum(h.until||h.date);
+  const isFree=t=>{const d=new Date(t);return d.getUTCDay()===0||d.getUTCDay()===6||free.has(dstr(t));};
+  // the contiguous stretch that is already free — weekends plus the other kept holidays
+  let a=start,b=end;
+  while(isFree(a-DAY))a-=DAY;
+  while(isFree(b+DAY))b+=DAY;
+  const freeLen=Math.round((b-a)/DAY)+1;
+  if(freeLen>=L)return {freeLen,from:a,to:b,leave:0,len:freeLen};
+  // otherwise: cheapest placement of an L-day window that still covers the holiday
+  let best=null;
+  const lo=Math.min(start,end-(L-1)*DAY);
+  for(let s0=lo;s0<=start;s0+=DAY){
+    let leave=0;
+    for(let i=0;i<L;i++) if(!isFree(s0+i*DAY))leave++;
+    if(!best||leave<best.leave)best={leave,from:s0,to:s0+(L-1)*DAY,len:L};
+  }
+  return {freeLen,from:a,to:b,leave:best?best.leave:0,len:L,stretch:best};
+}
+const plural=(n,w)=>n+' '+w+(n===1?'':'s');
+function holLine(h,free){
+  const br=bestBreak(h,free);
+  const scope=h.scope==='national'?'national':h.scope.join(', ');
+  let meta;
+  if(br.leave===0){
+    meta=`${plural(br.len,'day')} off, no leave needed`;
+  }else{
+    meta=`${plural(br.freeLen,'day')} off free`;
+    meta+=` · ${plural(br.leave,'day')} of leave makes it ${br.len}`;
+  }
+  return {sub:`${prettyDate(h.date)} · ${scope}`,meta:meta+(h.verify?' · date needs confirming':'')};
+}
+
+function renderSetupStep(){
+  for(let i=1;i<=5;i++){const el=$('#st'+i);if(el)el.style.display=i===step?'':'none';
+    const dot=$('#t'+i);if(dot)dot.classList.toggle('on',i<=step);}
+  $('#setupStepLabel').textContent='Step '+step+' of 5';
+  $('#setupBack').style.display=step>1&&step<5?'':'none';
+  $('#setupNav').style.display=step===5?'none':'flex';
+  $('#setupNext').textContent=step===4?'Create the trip':'Next';
+}
+function renderLen(){
+  $('#gLen').className='opts eq3';
+  $('#gLen').innerHTML=LEN_OPTS.map(([id,t,sub,lo,hi])=>
+    `<button type="button" class="opt${G.trip_len_min===lo&&G.trip_len_max===hi?' on':''}" data-len="${id}"><b>${t}</b><span>${sub}</span></button>`).join('');
+  $('#gLen').querySelectorAll('[data-len]').forEach(b=>b.onclick=()=>{
+    const o=LEN_OPTS.find(x=>x[0]===b.dataset.len);G.trip_len_min=o[3];G.trip_len_max=o[4];renderLen();renderHols();});
+}
+function renderStates(){
+  $('#gStates').className='opts';
+  $('#gStates').innerHTML=STATE_SUGGEST.map(st=>
+    `<button type="button" class="opt solo${G.states.includes(st)?' on':''}" data-st="${st}"><b>${st}</b></button>`).join('');
+  $('#gStates').querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{
+    const st=b.dataset.st;const i=G.states.indexOf(st);
+    if(i<0)G.states.push(st);else G.states.splice(i,1);
+    renderStates();renderHols();});
+}
+function renderHols(){
+  const list=holsInWindow();
+  if(!list.length){
+    $('#gHols').innerHTML='<div class="warn">No holidays in that window yet — widen the dates on the previous screen, or tick a state.</div>';
+    $('#gHolsNote').textContent='';return;
+  }
+  // first render: everything on. after that, keep the choice but drop any
+  // holiday the current states/window no longer offer, so it can't quietly
+  // keep counting as a free day.
+  const offered=new Set(list.map(h=>h.id));
+  if(!G._holsTouched)G.holiday_ids=list.map(h=>h.id);
+  else G.holiday_ids=G.holiday_ids.filter(id=>offered.has(id));
+  const free=freeDaySet();
+  $('#gHols').innerHTML=list.map(h=>{
+    const {sub,meta}=holLine(h,free);const on=G.holiday_ids.includes(h.id);
+    return `<button type="button" class="hol${on?' on':''}" data-hol="${h.id}" aria-pressed="${on}">
+      <span class="hol-tick" aria-hidden="true">${on?'✓':''}</span>
+      <span class="hol-txt"><b>${h.name}</b><span>${sub}</span><em>${meta}</em></span></button>`;
+  }).join('');
+  $('#gHols').querySelectorAll('[data-hol]').forEach(b=>b.onclick=()=>{
+    G._holsTouched=true;const id=b.dataset.hol;const i=G.holiday_ids.indexOf(id);
+    if(i<0)G.holiday_ids.push(id);else G.holiday_ids.splice(i,1);renderHols();});
+  const unsure=list.filter(h=>h.verify&&G.holiday_ids.includes(h.id)).length;
+  $('#gHolsNote').textContent=unsure?`${unsure} of these follow the lunar calendar or a state notification — worth a check before anyone books.`:'';
+}
+function renderTiers(){
+  $('#gTiers').innerHTML=G.budget_tiers.map((t,i)=>
+    `<div class="tier"><input class="field" data-tier="${i}" data-k="label" value="${(t.label||'').replace(/"/g,'&quot;')}" maxlength="10" aria-label="Tier ${i+1} amount">
+     <input class="field" data-tier="${i}" data-k="sub" value="${(t.sub||'').replace(/"/g,'&quot;')}" maxlength="40" aria-label="Tier ${i+1} description"></div>`).join('');
+  $('#gTiers').querySelectorAll('[data-tier]').forEach(inp=>inp.oninput=()=>{
+    G.budget_tiers[+inp.dataset.tier][inp.dataset.k]=inp.value;});
+}
+function renderRule(){
+  $('#gRule').className='opts';
+  $('#gRule').innerHTML=RULE_OPTS.map(([id,t,sub])=>
+    `<button type="button" class="opt${G.budget_rule===id?' on':''}" data-rule="${id}"><b>${t}</b><span>${sub}</span></button>`).join('');
+  $('#gRule').querySelectorAll('[data-rule]').forEach(b=>b.onclick=()=>{G.budget_rule=b.dataset.rule;renderRule();});
+}
+function renderToggles(){
+  $('#gToggles').className='opts';
+  $('#gToggles').innerHTML=
+    `<button type="button" class="opt${G.allow_plus_one?' on':''}" data-tg="plus"><b>Plus-ones</b><span>${G.allow_plus_one?'people can bring someone':'batch only'}</span></button>`+
+    `<button type="button" class="opt${G.allow_lurking?' on':''}" data-tg="lurk"><b>Lurking</b><span>${G.allow_lurking?'“will ask for photos later” allowed':'in or out only'}</span></button>`;
+  $('#gToggles').querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.tg==='plus')G.allow_plus_one=!G.allow_plus_one;else G.allow_lurking=!G.allow_lurking;
+    renderToggles();});
+}
+function setupWarn(msg){$('#setupWarn').innerHTML=msg?`<div class="warn">${msg}</div>`:'';}
+
+function stepValid(){
+  if(step===1){
+    G.name=$('#gName').value.trim();G.organiser_name=$('#gOrg').value.trim();
+    if(!G.name)return 'Give the trip a name — it becomes the title everyone sees.';
+    if(!G.organiser_name)return 'Add your name so people know who started this.';
+  }
+  if(step===2){
+    G.window_start=$('#gFrom').value;G.window_end=$('#gTo').value;G.vote_by=$('#gVoteBy').value;
+    if(!G.window_start||!G.window_end)return 'Pick the window the trip could happen in.';
+    if(G.window_end<=G.window_start)return 'The window has to end after it starts.';
+    if(G.vote_by&&G.vote_by>G.window_start)return 'Answers should be in before the window opens.';
+  }
+  if(step===3&&!G.holiday_ids.length)return 'Keep at least one holiday, or the form has no long weekends to offer.';
+  return '';
+}
+async function createGroup(){
+  $('#setupNext').disabled=true;$('#setupNext').textContent='Creating…';
+  try{
+    const r=await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'create_group',name:G.name,organiser_name:G.organiser_name,
+        region:G.region,states:G.states,holiday_ids:G.holiday_ids,window_start:G.window_start,
+        window_end:G.window_end,trip_len_min:G.trip_len_min,trip_len_max:G.trip_len_max,
+        budget_tiers:G.budget_tiers,budget_rule:G.budget_rule,currency:G.currency,
+        allow_plus_one:G.allow_plus_one,allow_lurking:G.allow_lurking,vote_by:G.vote_by||null})});
+    const j=await r.json();
+    if(!j||!j.ok)throw new Error((j&&j.error)||'could not create the trip');
+    created=j;
+    try{localStorage.setItem('trip:admin:'+j.group.id,j.admin_key);}catch(e){}
+    step=5;renderSetupStep();renderShare();
+    setupWarn('');
+  }catch(e){
+    setupWarn('Could not create the trip — '+e.message+'. Nothing was saved; try again.');
+  }finally{
+    $('#setupNext').disabled=false;$('#setupNext').textContent='Create the trip';
+  }
+}
+function createdLink(){
+  const base=location.href.split('#')[0].split('?')[0];
+  return base+'?g='+encodeURIComponent(created.group.id);
+}
+function createdMsg(){
+  const by=G.vote_by?` Answers by ${prettyDate(G.vote_by)}.`:'';
+  return `${G.name} is actually happening. Two minutes, one form — where you are, when you can get away, and what you feel like.${by}\n${createdLink()}`;
+}
+function renderShare(){
+  $('#gLink').textContent=createdLink();
+  $('#gAdminNote').textContent='You’re the organiser on this device only — there’s no login, so if you clear this browser you can’t change the settings again. Keep the link somewhere safe.';
+  const link=createdLink();
+  $('#gCopyLink').onclick=()=>copyText(link,'Link copied.');
+  $('#gCopyMsg').onclick=()=>copyText(createdMsg(),'Copied. Paste it in the group.');
+  $('#gOpenTrip').onclick=()=>{location.href=link;};
+  const sh=$('#gShare');
+  sh.style.display=canShare()?'':'none';
+  sh.onclick=async()=>{
+    try{await navigator.share({title:G.name,text:createdMsg().split('\n')[0],url:link});}
+    catch(e){if(e&&(e.name==='AbortError'||e.name==='NotAllowedError'))return;copyText(createdMsg(),'Sharing didn’t open — copied it instead.');}
+  };
+}
+function bootSetup(){
+  const today=new Date();
+  $('#gFrom').value=iso(today);
+  $('#gTo').value=iso(addMonths(today,4));
+  G.window_start=$('#gFrom').value;G.window_end=$('#gTo').value;
+  $('#gFrom').onchange=$('#gTo').onchange=()=>{G.window_start=$('#gFrom').value;G.window_end=$('#gTo').value;renderHols();};
+  renderLen();renderStates();renderHols();renderTiers();renderRule();renderToggles();renderSetupStep();
+  $('#setupBack').onclick=()=>{if(step>1){step--;setupWarn('');renderSetupStep();}};
+  $('#setupNext').onclick=()=>{
+    const bad=stepValid();
+    if(bad){setupWarn(bad);return;}
+    setupWarn('');
+    if(step===4){createGroup();return;}
+    step++;renderSetupStep();
+    if(step===3)renderHols();
+  };
+}
+
+
+/* A group's own settings win over the hardcoded defaults, when they exist. */
+function applyGroup(){
+  if(!group)return;
+  if(group.name)$('#headline').textContent=group.name;
+  if(group.window_start&&group.window_end){
+    const a=new Date(group.window_start+'T00:00:00'),b=new Date(group.window_end+'T00:00:00');
+    $('#sub').textContent=MONTH[a.getMonth()]+(a.getFullYear()!==b.getFullYear()?' '+a.getFullYear():'')+'–'+MONTH[b.getMonth()]+' '+b.getFullYear();
+  }
+  const by=group.vote_by||VOTE_BY;
+  const lead=document.querySelector('.hero .lead');
+  if(lead&&by)lead.textContent='Answers by '+prettyDate(by)+'. Then we begin booking.';
+  if(Array.isArray(group.budget_tiers)&&group.budget_tiers.length){
+    Q.spend=group.budget_tiers.map(t=>[t.id,t.label,t.sub||'']);
+  }
+  if(group.allow_lurking===false)Q.sure=Q.sure.filter(o=>o[0]!=='lurking');
+  if(group.allow_plus_one===false){
+    const sec=document.querySelector('#plus')&&document.querySelector('#plus').closest('.card');
+    const blk=document.querySelector('#plus')&&document.querySelector('#plus').previousElementSibling;
+    if(blk&&blk.classList.contains('lbl'))blk.style.display='none';
+    if($('#plus'))$('#plus').style.display='none';
+    me.plus='solo';
+    if(sec)sec.dataset.noPlusOne='1';
+  }
+  renderAllOpts();
+}
+
 /* ---------- boot ---------- */
 function renderReport(){
   const n=all().length,i=all().filter(f=>f.sure==='in').length,p=all().filter(f=>f.sure==='probably').length;
@@ -677,6 +958,7 @@ function renderReport(){
   $('#headline').innerHTML=n?`<em>${n}</em> planted — ${i} in${p?`, ${p} probably`:''}.${lead?` Leaning <em>${esc(lead)}</em>.`:''}${b?` Best window <em>${fmtRange(b.a,b.b)}</em>, ${b.n} of ${tot} free.`:''}`:'Nobody has planted yet. The report is a blank page and a dream.';
 }
 async function boot(){
+  if(SETUP){$('#memberApp').style.display='none';$('#setupApp').style.display='';bootSetup();return;}
   if(REPORT){document.body.classList.add('report');const h=document.querySelector('.hero .ill');h.dataset.slot='report';delete h.dataset.mounted;}
   renderDoodles();initMap();renderCal();renderAllOpts();renderRec();mountIll();
   if(!hasBackend&&!hasStore){$('#storeWarn').innerHTML='<div class="warn">No backend connected — answers stay on this phone. Add the Apps Script URL (backend.gs) or open the shared link.</div>';}
@@ -705,6 +987,7 @@ async function boot(){
   const gp=$('#openGPT');if(gp)gp.onclick=()=>openLLM('chatgpt');
   $('#waUpdate').onclick=()=>copyText(`I am done filling as ${me.name.trim()}! now you're next ;)`,'Copied. Paste it in WhatsApp.');
   friends=await loadFriends();
+  applyGroup();
   const saved=await loadMe();
   let myKey=(saved&&saved.name&&friends[keyOf(saved.name)])?keyOf(saved.name):null;
   if(!myKey&&device){ // same browser, but the local note got lost: match on this browser's id
