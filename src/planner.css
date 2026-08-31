@@ -257,6 +257,13 @@ input[type=search]::-webkit-search-decoration,input[type=search]::-webkit-search
 .ai-head h3{margin:0;font-size:20px;font-weight:800;color:var(--garden-ink)}
 .ai-badge{font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;background:linear-gradient(135deg,var(--pink),var(--red));border-radius:999px;padding:3px 8px}
 .ai-panel .hint{color:var(--garden-ink);opacity:.8}
+.ai-with{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:12px 0 2px}
+.ai-with-label{flex:0 0 100%;font-size:13px;font-weight:600;color:var(--garden-ink);opacity:.65}
+.ai-mark{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--garden-ink)}
+.ai-mark svg{width:16px;height:16px;flex:0 0 16px;display:block}
+.ai-mark[data-brand=gemini] svg{fill:#8E75B2}
+.ai-mark[data-brand=claude] svg{fill:#D97757}
+.ai-mark[data-brand=gpt] svg{color:var(--garden-ink);opacity:.75}
 .ai-rec{margin:12px 0;font-size:14px;font-weight:600;color:var(--garden-ink);background:var(--canvas);border-radius:12px;padding:10px 12px}
 .ai-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .ai-btns .btn{flex:0 0 auto}

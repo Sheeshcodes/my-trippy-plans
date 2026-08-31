@@ -640,6 +640,19 @@ function nudge(){
   const names=list.slice(0,3).map(f=>f.name);
   return `${list.length} of us have planted (${names.join(', ')}${list.length>3?' + more':''})${lead?`, and it’s leaning ${lead}`:''}. Takes a minute — less than you spend choosing what to order. ${SHARE_URL||(/^https?:/.test(location.href)?location.href.split('#')[0]:'(link)')}`;
 }
+const tripLink=()=>SHARE_URL||(/^https?:/.test(location.href)?location.href.split('#')[0]:'');
+const canShare=()=>{try{return typeof navigator.share==='function';}catch(e){return false;}};
+async function shareTrip(){
+  const link=tripLink();
+  const msg=nudge();
+  const text=link?msg.replace(link,'').trim():msg;   // the OS appends the url itself
+  try{
+    await navigator.share(link?{title:'Our trip',text,url:link}:{title:'Our trip',text});
+  }catch(e){
+    if(e&&(e.name==='AbortError'||e.name==='NotAllowedError'))return;   // user closed the sheet
+    copyText(msg,'Sharing didn’t open — copied it instead.');
+  }
+}
 function csv(){
   const cols=['name','sure','place','lat','lng','begin','end','begin_date','end_date','leave','vibe','types','spend','plus','need','rec','recText','ts'];
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
@@ -685,6 +698,7 @@ async function boot(){
   $('#need').addEventListener('input',checklist);
   $('#copy').onclick=()=>copyText(summary(),'Copied. Paste it in the group.');
   $('#nudge').onclick=()=>copyText(nudge(),'Copied. Send it to the quiet ones.');
+  const sh=$('#share');if(sh){sh.style.display=canShare()?'':'none';sh.onclick=shareTrip;}
   const cp=$('#copyPrompt');if(cp)cp.onclick=()=>copyText(aiPrompt(),'Prompt copied. Paste it into any AI chat.');
   const gg=$('#openGemini');if(gg)gg.onclick=()=>openLLM('gemini');
   const gc=$('#openClaude');if(gc)gc.onclick=()=>openLLM('claude');
