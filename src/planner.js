@@ -479,7 +479,7 @@ function renderRes(){
   }).join('')+'</div></div>';
   R.innerHTML=h;
 }
-function renderAll(){renderGarden();renderRes();renderCount();if(REPORT)renderReport();fitView();renderMap();renderChips();renderAllOpts();steps();const mine=!!friends[keyOf(me.name)];$('#remove').style.display=mine?'inline':'none';$('#notme').style.display=mine?'inline':'none';}
+function renderAll(){renderGarden();renderRes();renderCount();if(REPORT)renderReport();fitView();renderMap();renderChips();renderAllOpts();steps();const mine=!!friends[keyOf(me.name)];$('#remove').style.display=mine?'inline':'none';$('#notme').style.display=mine?'inline':'none';const ai=$('#aiPanel');if(ai)ai.style.display=active().length>1?'':'none';}
 
 /* ---------- checklist ---------- */
 function missing(){
@@ -590,6 +590,51 @@ function summary(){
   const missing=list.filter(f=>f.begin==null||f.end==null).map(f=>f.name);if(missing.length)L.push('still to pick dates: '+missing.join(', '));
   return L.join('\n');
 }
+function aiPrompt(){
+  const list=all();const act=active();const {cnt,tot}=computeCounts();const b=bestWindow(cnt);
+  // aggregates
+  const homes={};act.forEach(f=>{if(f.place){const p=f.place.replace(/^near /,'');homes[p]=(homes[p]||0)+1;}});
+  const homeStr=Object.entries(homes).sort((a,b)=>b[1]-a[1]).map(([p,n])=>n>1?`${p} (${n})`:p).join(', ')||'not shared';
+  const vb=act.filter(f=>f.vibe==='beach').length,vh=act.filter(f=>f.vibe==='hills').length;
+  const vibe=vb===vh?'split evenly between beach and hills':vb>vh?`leaning beach (${vb} vs ${vh})`:`leaning hills (${vh} vs ${vb})`;
+  const ty=mode('types',true).map(t=>label('types',t[0]));
+  const sp=mode('spend');const budget=sp?`${label('spend',sp[0])} per head (stay + food + local travel, excluding the journey to get there)`:'not agreed yet';
+  const len=b?`${b.len} day${b.len>1?'s':''}`:'a long weekend';
+  const when=b?`${fmtRange(b.a,b.b)} works for ${b.n} of ${tot}`:'still being decided';
+  const wishes=list.filter(f=>f.need&&f.need.trim()).map(f=>f.need.trim());
+  const ideas=list.filter(f=>f.rec==='yes'&&f.recText&&f.recText.trim()).map(f=>`${f.recText.trim()} (from ${f.name})`);
+  const leave=mode('leave');const leaveStr=leave?label('leave',leave[0]):'varies';
+
+  const L=[];
+  L.push('You are a sharp, opinionated travel planner. A group of friends is planning a trip together and here is what they, collectively, want. Use it to recommend where they should actually go.');
+  L.push('');
+  L.push('THE GROUP');
+  const watchers=list.length-act.length;
+  const who=act.length===1?'person':'people';
+  L.push(watchers
+    ? `- ${act.length} ${who} travelling (plus ${watchers} ${watchers===1?'who is':'who are'} just watching — plan for the ${act.length}).`
+    : `- ${act.length} ${who} travelling.`);
+  L.push(`- Coming from: ${homeStr}. Pick destinations that are reasonably fair to reach for most of them, not just the biggest city.`);
+  L.push(`- Vibe: ${vibe}.`);
+  if(ty.length)L.push(`- What they want to do: ${ty.join(' and ')}.`);
+  L.push(`- Budget: ${budget}.`);
+  L.push(`- Leave most can take: ${leaveStr}. Trip length: about ${len}.`);
+  L.push(`- Dates: ${when}.`);
+  if(wishes.length)L.push(`- This trip needs (their words): ${wishes.map(w=>`"${w}"`).join(', ')}.`);
+  if(ideas.length)L.push(`- Places some already suggested: ${ideas.join('; ')}. Consider these but don't be limited by them.`);
+  L.push('');
+  L.push('WHAT TO GIVE BACK');
+  L.push('1. THREE popular picks — crowd-pleasers that fit the vibe, budget and travel fairness above. For each: one line on why it fits THIS group specifically, a rough per-head stay-cost band, and 2–3 things to do that match their mood.');
+  L.push('2. THREE underrated picks — lesser-known places that fit even better, same detail. Bias toward these; the group can find the obvious ones themselves.');
+  L.push('3. For your single best pick, a rough day-by-day sketch for the trip length above.');
+  L.push('4. Be honest about trade-offs (long travel for some, monsoon, peak-season pricing) — do not oversell.');
+  L.push('');
+  L.push('THEN — GOOGLE MY MAPS (if you are Gemini or can browse):');
+  L.push('Lay your 6 picks as pins on a Google My Maps. For each pin add a short note with the reason and the stay-cost band. Give me the steps to open it, or the map link if you can create one. If you cannot make a map, output the 6 places as a simple list of "Name — one-line note" I can paste into Google My Maps myself.');
+  L.push('');
+  L.push('Keep it tight and skimmable. No preamble. Start with the underrated picks if they are genuinely better.');
+  return L.join('\n');
+}
 function nudge(){
   const list=all();const lead=leading();
   const names=list.slice(0,3).map(f=>f.name);
@@ -604,6 +649,12 @@ function csv(){
   catch(e){prompt('copy this:',text);}
 }
 function resetForm(){me=blank();$('#recBox').style.display='none';$('#recText').value='';$('#recCount').textContent='80';Object.defineProperty(me,'vibes',{get(){return this.vibe;},set(v){this.vibe=v;},enumerable:false,configurable:true});mineKey=null;$('#name').value='';$('#need').value='';$('#needCount').textContent='60';$('#q').value='';$('#results').innerHTML='';$('#done').style.display='none';$('#save').textContent='Plant me in';renderDoodles();nameCheck();renderCal();renderRec();renderAll();try{localStorage.removeItem(MEKEY);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+function openLLM(which){
+  const text=aiPrompt();
+  copyText(text,'Prompt copied — paste it into the chat that opens.');
+  const url={gemini:'https://gemini.google.com/app',chatgpt:'https://chat.openai.com/',claude:'https://claude.ai/new'}[which]||'https://gemini.google.com/app';
+  setTimeout(()=>{try{window.open(url,'_blank','noopener');}catch(e){}},250);
+}
 async function copyText(t,msg){try{await navigator.clipboard.writeText(t);toast(msg);}catch(e){prompt('copy this:',t);}}
 
 /* ---------- boot ---------- */
@@ -634,6 +685,10 @@ async function boot(){
   $('#need').addEventListener('input',checklist);
   $('#copy').onclick=()=>copyText(summary(),'Copied. Paste it in the group.');
   $('#nudge').onclick=()=>copyText(nudge(),'Copied. Send it to the quiet ones.');
+  const cp=$('#copyPrompt');if(cp)cp.onclick=()=>copyText(aiPrompt(),'Prompt copied. Paste it into any AI chat.');
+  const gg=$('#openGemini');if(gg)gg.onclick=()=>openLLM('gemini');
+  const gc=$('#openClaude');if(gc)gc.onclick=()=>openLLM('claude');
+  const gp=$('#openGPT');if(gp)gp.onclick=()=>openLLM('chatgpt');
   $('#waUpdate').onclick=()=>copyText(`I am done filling as ${me.name.trim()}! now you're next ;)`,'Copied. Paste it in WhatsApp.');
   friends=await loadFriends();
   const saved=await loadMe();

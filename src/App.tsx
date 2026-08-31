@@ -137,6 +137,19 @@ export default function App() {
     <div id="gardenEmpty"><figure className="ill" data-slot="empty"></figure><div className="hint">An empty pot. It’s giving “group chat with 22 people and zero plans”.</div></div>
     <svg className="garden" id="garden" viewBox="0 0 360 120"></svg>
     <div className="res" id="res"></div>
+
+    <div className="ai-panel" id="aiPanel">
+      <div className="ai-head"><h3>Turn this into a plan</h3><span className="ai-badge">AI</span></div>
+      <p className="hint">We’ve written a prompt from everyone’s answers — where you’re all coming from, the vibe, budget, dates and wishes. Paste it into any AI and it’ll suggest where to actually go, popular and underrated, with rough costs.</p>
+      <div className="ai-rec">Recommended: <b>Gemini</b> — it can drop the picks straight onto a <b>Google My Map</b> you can share.</div>
+      <div className="ai-btns">
+        <button className="btn ink" id="openGemini">Open Gemini &amp; copy prompt</button>
+        <button className="btn" id="openClaude">Claude</button>
+        <button className="btn" id="openGPT">ChatGPT</button>
+      </div>
+      <button className="link" id="copyPrompt">or just copy the prompt</button>
+    </div>
+
     <div className="actions">
       <button className="link" id="csv">Download all answers (csv)</button>
       <button className="link" id="notme" style={{display:'none'}}>Not you? Start a fresh form</button>
